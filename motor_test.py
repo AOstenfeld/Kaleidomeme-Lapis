@@ -1,14 +1,13 @@
 import RPi.GPIO as gpio
-from motor import Motor
+from mods import Motor
 
 pins = [22, 17, 23, 27] #[a1, b1, a2, b2]
-delay = 0.01
+delay = 0.02
 
 motor = Motor(pins, delay)
 
-gpio.setmode(gpio.BCM)
-gpio.setup(motor.pins, gpio.OUT)
+motor.set_run(True)
 
-motor.ccw_cycle(100)
+motor.cycle(int(1/delay))
 
-gpio.cleanup(motor.pins)
+motor.clean()
