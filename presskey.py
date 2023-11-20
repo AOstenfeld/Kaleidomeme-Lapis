@@ -1,64 +1,46 @@
 import tkinter as tk
 from time import sleep
 from picamera import PiCamera
+import mods
+import threading
 
-#Camera setup stuff goes here
+def turn_motor(e, mot):
+    while e.is_set():
+        print("test")
+        mot.cycle()
+    e.set()
 
-class Screenshot:
+if __name__ == "__main__":
+    
+    root = tk.Tk()
 
-    def __init__(self, picFile="pic#0#.jpg",vidFile = "vid#0#.h264"):
-        self.picFile = picFile
-        self.vidFile = vidFile
+    cam = mods.Screenshot()
+    motor = mods.Motor([22, 17, 23, 27], 0.02)
 
-    def vid(self):
-        camera = PiCamera()
-        camera.resolution = (640, 480)
-        camera.framerate = 24
+    motor_on = threading.Event()
+    motor_thread = threading.Thread(target=turn_motor, args=(motor_on, motor), daemon=True)
+    motor_thread.start()
 
-        camera.start_preview()
-        camera.preview_fullscreen = False
-        camera.preview.window = (300, 200, 1920, 1080)
-        camera.start_recording("Videos/" + self.vidFile)
-        camera.wait_recording(5)
-        camera.stop_recording()
-        camera.stop_preview()
-        tmp = self.vidFile.split('#')
-        tmp[1] = str(int(tmp[1]) + 1)
-        self.vidFile = tmp[0] + '#' + tmp[1] + '#' + tmp[2]
-        camera.close()
+    app = tk.Frame(master=root)
+    root.wm_title("Tkinter button")
+    root.geometry("320x200")
+    text = tk.Label(text="sample text")
+    text.pack()
+    app.pack()
 
-    def pic(self):
-        camera = PiCamera()
-        camera.resolution = (1024,768)
-        camera.start_preview(alpha=200)
-        sleep(2)
-        camera.capture("Screenshots/" + self.picFile)
-        camera.stop_preview()
-        tmp = self.picFile.split('#')
-        tmp[1] = str(int(tmp[1]) + 1)
-        self.picFile = tmp[0] + '#' + tmp[1] + '#' + tmp[2]
-        camera.close()
+    vidbutton = tk.Button(master=app, text="Take Video", command=cam.vid)
+    picbutton = tk.Button(master=app, text="Take Picture", command=cam.pic)
+    start_motor_button = tk.Button(master=app, text="Start Motor", command=motor_thread.run)
+    stop_motor_button = tk.Button(master=app, text="Stop Motor", command=motor_on.clear)
+    quitbutton = tk.Button(master=app, text="Quit", command=root.destroy)
 
-#GUI stuff goes here
+    vidbutton.pack()
+    picbutton.pack()
+    start_motor_button.pack()
+    stop_motor_button.pack()
+    quitbutton.pack()
 
-root =  tk.Tk()
+    root.mainloop()
 
-def quitCamera():
-    root.destroy()
-
-app = tk.Frame(master=root)
-root.wm_title("Tkinter button")
-root.geometry("320x200")
-text = tk.Label(text="sample text")
-text.pack()
-app.pack()
-
-shot = Screenshot()
-vidbutton = tk.Button(master=app, text="Take Video", command=shot.vid)
-picbutton = tk.Button(master=app, text="Take Picture", command=shot.pic)
-quitbutton = tk.Button(master=app, text="Quit", command=quitCamera)
-vidbutton.pack()
-picbutton.pack()
-quitbutton.pack()
-
-root.mainloop()
+    motor.clean()
+    print("asdjasgdjsaghjdgasd")
