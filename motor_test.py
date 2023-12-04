@@ -6,8 +6,6 @@ delay = 0.02
 
 motor = Motor(pins, delay)
 
-motor.set_run(True)
-
 motor.cycle(int(1/delay))
 
 motor.clean()
