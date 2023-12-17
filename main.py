@@ -5,11 +5,15 @@ import mods
 import threading
 
 def motor_control():
-    while not quit_event.is_set():
-        if motor_on.is_set():
-            motor.set_delay(motor_speed.get()/1000)
-            motor.cycle()
-        sleep(0.001)
+    try:
+        while not quit_event.is_set():
+            if motor_on.is_set():
+                motor.set_delay(1/motor_speed.get())
+                motor.cycle()
+            sleep(0.001)
+    except tk.TclError:
+        pass
+    GPIO.cleanup()
 
 def led_control():
     rgbs.start()
@@ -29,17 +33,18 @@ def take_vid(dur, filename):
     vid_thread = threading.Thread(target=cam.vid, args=(dur, filename))
     vid_thread.start()
 
-def  kill_all():
+def kill_all():
+    motor_on.clear()
     quit_event.set()
+    cam.close_cam()
     root.destroy()
 
 if __name__ == "__main__":
 
     mot_pins = [22, 17, 23, 27]
-    led_pins = [6, 27, 22]
+    led_pins = [6, 26, 19]
 
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(mot_pins, GPIO.OUT)
     GPIO.setup(led_pins, GPIO.OUT)
 
     cam = mods.KalCamera()
@@ -51,7 +56,7 @@ if __name__ == "__main__":
 
     root = tk.Tk()
     root.wm_title("Kaleidomeme controls")
-    root.geometry("900x300")
+    root.geometry("950x400")
     root.resizable(False, False)
 
     mot_frame = tk.Frame(master=root, highlightbackground="black", highlightthickness=2)
@@ -78,7 +83,7 @@ if __name__ == "__main__":
     speed_label = tk.Label(master=mot_subframe, text="Motor Speed:", font=(20))
     speed_label.grid(row=0, column=0)
 
-    motor_speed = tk.Scale(master=mot_subframe, from_=20, to=5, orient=tk.HORIZONTAL)
+    motor_speed = tk.Scale(master=mot_subframe, from_=10, to=100, orient=tk.HORIZONTAL)
     motor_speed.grid(row=0, column=1)
 
     led_label = tk.Label(master=led_frame, text="LED Controls", font=(None, 24, "bold"))
@@ -105,19 +110,43 @@ if __name__ == "__main__":
     blue_level = tk.Scale(master=led_subframe, from_=0, to=100, orient=tk.HORIZONTAL)
     blue_level.grid(row=2, column=1)
 
-    pic_button = tk.Button(master=cam_frame, text="Take Picture", command=lambda: take_pic(filename_input.get(1.0, "end")))
+    cam_label = tk.Label(master=cam_frame, text="Camera Controls", width=14, height=2, font=(None, 20, "bold"))
+    cam_label.pack()
+
+    prev_start_button = tk.Button(master=cam_frame, text="Start Preview", width=20, height=2, font=(20), command=cam.start_prev)
+    prev_start_button.pack()
+
+    prev_stop_button = tk.Button(master=cam_frame, text="Stop Preview", width=20, height=2, font=(20), command=cam.stop_prev)
+    prev_stop_button.pack()
+
+    pic_button = tk.Button(master=cam_frame, text="Take Picture", width=20, height=2, font=(20), command=lambda: take_pic(filename_input.get(1.0, "end")[:-1]))
     pic_button.pack()
 
-    vid_button = tk.Button(master=cam_frame, text="Take Video", command=lambda: take_vid(5, None))
+    vid_button = tk.Button(master=cam_frame, text="Take Video", width=20, height=2, font=(20), command=lambda: take_vid(vid_dur.get(), filename_input.get(1.0, "end")[:-1]))
     vid_button.pack()
 
-    filename_input = tk.Text(master=cam_frame, height=1, width=20)
-    filename_input.pack()
-    
-    quit_button = tk.Button(master=cam_frame, text="Quit", command=kill_all)
-    quit_button.pack()
+    cam_subframe = tk.Frame(master=cam_frame)
+    cam_subframe.pack()
 
-    motor_thread = threading.Thread(target=motor_control, args=(), daemon=True)
+    dur_label = tk.Label(master=cam_subframe, text="Video\nduration (sec):", font=(20))
+    dur_label.grid(row=0, column=0)
+
+    vid_dur = tk.Scale(master=cam_subframe, from_=5, to=30, orient=tk.HORIZONTAL)
+    vid_dur.grid(row=0, column=1)
+
+    cam_subframe2 = tk.Frame(master=cam_frame)
+    cam_subframe2.pack()
+
+    file_label = tk.Label(master=cam_subframe2, text="File name:", font=(20))
+    file_label.grid(row=0, column=0)
+
+    filename_input = tk.Text(master=cam_subframe2, height=1, width=20)
+    filename_input.grid(row=0, column=1)
+
+    quit_button = tk.Button(master=root, text="Quit", width=14, height=2, font=(20), command=kill_all)
+    quit_button.place(x=375, y=300)
+
+    motor_thread = threading.Thread(target=motor_control, args=())
     motor_thread.start()
 
     led_thread = threading.Thread(target=led_control, args=(), daemon=True)
@@ -126,4 +155,3 @@ if __name__ == "__main__":
     root.mainloop()
 
     rgbs.stop()
-    GPIO.cleanup()

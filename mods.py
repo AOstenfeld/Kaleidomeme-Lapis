@@ -17,6 +17,8 @@ class KalMotor:
                                [0, 1, 1, 0],
                                [0, 0, 1, 1],
                                [1, 0, 0, 1]]
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.pins, GPIO.OUT)
 
     def set_delay(self, delay):
         self.delay = delay
@@ -46,44 +48,57 @@ class KalMotor:
 
 class KalCamera:
 
-    def __init__(self, picFile="pic#0#.jpg",vidFile = "vid#0#.h264"):
+    def __init__(self, picFile="pic#0#.jpg", vidFile = "vid#0#.h264"):
         self.picFile = picFile
         self.vidFile = vidFile
+        self.camera = PiCamera()
+        self.camera.resolution = (1024,768)
+        self.camera.framerate = 24
 
-    def pic(self, filename=None):
-        camera = PiCamera()
-        camera.resolution = (1024,768)
-        camera.start_preview(alpha=200)
+    def start_prev(self):
+        self.camera.start_preview()
+        self.camera.preview_fullscreen = False
+        self.camera.preview.window = (-200, 50, 1920, 1080)
+
+    def stop_prev(self):
+        self.camera.stop_preview()
+
+    def close_cam(self):
+        self.camera.close()
+
+    def pic(self, filename=""):
         sleep(1)
-        if filename != None:
-            camera.capture("Pictures/" + filename + ".jpg")
+        if filename != "":
+            self.camera.capture("Pictures/" + filename + ".jpg")
         else:
-            camera.capture("Pictures/" + self.picFile)
+            self.camera.capture("Pictures/" + self.picFile)
             tmp = self.picFile.split('#')
             tmp[1] = str(int(tmp[1]) + 1)
             self.picFile = tmp[0] + '#' + tmp[1] + '#' + tmp[2]
-        camera.stop_preview()
-        camera.close()
+        print("Picture taken")
     
-    def vid(self, dur, filename=None):
-        camera = PiCamera()
-        camera.resolution = (640, 480)
-        camera.framerate = 24
+    def vid(self, dur, filename=""):
+        """To fix issues with video playback, type the command
 
-        camera.start_preview(alpha=200)
-        camera.preview_fullscreen = False
-        camera.preview.window = (300, 200, 1920, 1080)
-        if filename != None:
-            camera.start_recording("Videos/" + filename + ".h264")
+        ffmpeg -r 24 -i infile.h264 outfile.mkv
+
+        into the command line in the /Documents/Kalidomeme Group 2/Videos/ directory.
+        
+        Replace infile with the file name of the saved video and outfile with the desired name of the copy.
+        """
+        sleep(1)
+        if filename != "":
+            self.camera.start_recording("Videos/" + filename + ".h264")
+            print("Recording started")
         else:
-            camera.start_recording("Videos/" + self.vidFile)
+            self.camera.start_recording("Videos/" + self.vidFile)
+            print("Recording started")
             tmp = self.vidFile.split('#')
             tmp[1] = str(int(tmp[1]) + 1)
             self.vidFile = tmp[0] + '#' + tmp[1] + '#' + tmp[2]
-        camera.wait_recording(dur)
-        camera.stop_recording()
-        camera.stop_preview()
-        camera.close()
+        self.camera.wait_recording(dur)
+        self.camera.stop_recording()
+        print("Recording stopped")
 
 class KalLED:
 
